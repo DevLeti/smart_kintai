@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -12,9 +13,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const CupertinoApp(
+    return ShadcnApp(
       title: '근무관리 앱',
-      home: MyHomePage(),
+      home: const MyHomePage(),
+      theme: ThemeData(
+        colorScheme: ColorSchemes.lightSlate(),
+        radius: 0.5,
+      ),
     );
   }
 }
@@ -33,45 +38,49 @@ class _MyHomePageState extends State<MyHomePage> {
   );
 
   void _startWork() async {
-    final response = await _supabase.from('kintai_start_end').insert({
-      'is_start': true,
-      'user_id': '1',
-      'created_at': DateTime.now().toIso8601String(),
-    });
+    try {
+      await _supabase.from('kintai_start_end').insert({
+        'is_start': true,
+        'user_id': '1',
+        'created_at': DateTime.now().toIso8601String(),
+      }).select();
 
-    // TODO: 오류 처리 필요
-    if (response.error != null) {
-      showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-                title: const Text('오류 발생'),
-                content: Text('오류:${response.error!.message}'),
-                actions: <Widget>[
-                  CupertinoDialogAction(
-                    isDefaultAction: true,
-                    onPressed: () {
-                      Navigator.of(context, rootNavigator: true).pop('dialog');
-                    },
-                    child: const Text('확인'),
-                  ),
-                ],
-              ));
-    } else {
-      showCupertinoDialog(
+      // 성공 처리
+      showDialog(
         context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: const Text('근무 시작'),
-          content: const Text('근무 시작 성공'),
-          actions: <Widget>[
-            CupertinoDialogAction(
-              child: const Text('확인'),
-              isDefaultAction: true,
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).pop('dialog');
-              },
-            ),
-          ],
-        ),
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('근무 시작'),
+            content: const Text('성공적으로 근무 시작 처리 되었습니다.'),
+            actions: [
+              PrimaryButton(
+                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      // 오류 처리
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('오류'),
+            content: Text('근무 시작 처리 중 오류가 발생했습니다.\n$e'),
+            actions: [
+              PrimaryButton(
+                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          );
+        },
       );
     }
   }
@@ -89,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: _startWork,
             child: const Text(
               '근무 시작',
-              style: TextStyle(color: CupertinoColors.white),
+              style: TextStyle(color: CupertinoColors.black),
             ),
           ),
         ),
