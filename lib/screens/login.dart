@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'mainPage.dart';
 
 class LoginPage extends StatefulWidget {
@@ -16,6 +18,36 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _saveId = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedId();
+  }
+
+  Future<void> _loadSavedId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedId = prefs.getString('saved_email');
+    final saveIdChecked = prefs.getBool('save_id_checked') ?? false;
+    if (savedId != null && saveIdChecked) {
+      _emailController.text = savedId;
+      setState(() {
+        _saveId = true;
+      });
+    }
+  }
+
+  Future<void> _setSavedId(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value) {
+      await prefs.setString('saved_email', _emailController.text.trim());
+      await prefs.setBool('save_id_checked', true);
+    } else {
+      await prefs.remove('saved_email');
+      await prefs.setBool('save_id_checked', false);
+    }
+  }
 
   void _showDialog(String title, String content) {
     showDialog(
@@ -42,16 +74,17 @@ class _LoginPageState extends State<LoginPage> {
       _isLoading = true;
     });
     try {
+      if (_saveId) {
+        await _setSavedId(true);
+      } else {
+        await _setSavedId(false);
+      }
       final response = await _supabase.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
       if (response.user != null) {
-        // 로그인 성공 시 supabase_provider에 정보 저장 (ProviderScope 필요)
-        // 그리고 메인 페이지로 이동 (stack을 쌓지 않고)
         if (mounted) {
-          // ProviderScope를 사용하려면 context를 ConsumerWidget에서 받아야 하지만,
-          // 여기서는 간단히 Navigator로 이동만 처리
           Navigator.of(context).pushReplacement(
             CupertinoPageRoute(builder: (_) => const MainPage()),
           );
@@ -78,11 +111,8 @@ class _LoginPageState extends State<LoginPage> {
         password: _passwordController.text,
       );
       if (response.user != null) {
-        // 회원가입 성공 시 supabase_provider에 정보 저장 (ProviderScope 필요)
-        // 그리고 메인 페이지로 이동 (stack을 쌓지 않고)
         if (mounted) {
           _showDialog('회원가입 성공', '이메일 인증 후 로그인해주세요.');
-          // 회원가입 후에는 인증 메일을 확인해야 하므로 바로 이동하지 않음
         }
       } else {
         _showDialog('회원가입 실패', '이미 가입된 이메일이거나, 입력 정보를 확인해주세요.');
@@ -98,7 +128,6 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    // ProviderScope가 위에 있어야 supabase_provider 사용 가능
     return CupertinoPageScaffold(
       navigationBar: const CupertinoNavigationBar(
         middle: Text('로그인 / 회원가입'),
@@ -116,6 +145,11 @@ class _LoginPageState extends State<LoginPage> {
                   keyboardType: TextInputType.emailAddress,
                   padding: const EdgeInsets.all(16),
                   clearButtonMode: OverlayVisibilityMode.editing,
+                  onChanged: (value) {
+                    if (_saveId) {
+                      _setSavedId(true);
+                    }
+                  },
                 ),
                 const SizedBox(height: 16),
                 CupertinoTextField(
@@ -125,7 +159,42 @@ class _LoginPageState extends State<LoginPage> {
                   padding: const EdgeInsets.all(16),
                   clearButtonMode: OverlayVisibilityMode.editing,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 12),
+                // 가운데 정렬된 ID 저장 Row, Row 전체가 setState 하도록 GestureDetector로 감쌈
+                GestureDetector(
+                  onTap: () async {
+                    // 진동 피드백 추가
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      _saveId = !_saveId;
+                    });
+                    await _setSavedId(_saveId);
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CupertinoSwitch(
+                        value: _saveId,
+                        onChanged: (value) async {
+                          setState(() {
+                            _saveId = value;
+                          });
+                          await _setSavedId(value);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('ID 저장'),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20.0),
+                  child: Container(
+                    width: double.infinity,
+                    height: 1,
+                    color: CupertinoColors.systemGrey4,
+                  ),
+                ),
                 SizedBox(
                   width: double.infinity,
                   child: CupertinoButton.filled(
