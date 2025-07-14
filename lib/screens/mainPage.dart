@@ -14,6 +14,85 @@ class _MainPageState extends State<MainPage> {
 
   // 출근 상태를 저장하는 변수 (true: 출근, false: 퇴근)
   bool _isWorking = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTodayWorkStatus();
+  }
+
+  // 오늘의 마지막 출근/퇴근 상태를 supabase에서 조회
+  Future<void> _fetchTodayWorkStatus() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 실제로는 user_id를 동적으로 받아야 함. 예시로 '1' 사용
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
+      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+      final user = _supabase.auth.currentUser;
+      final userId = user?.id;
+      if (userId == null) {
+        setState(() {
+          _isWorking = false;
+          _isLoading = false;
+        });
+        // 세션 만료 다이얼로그 표시
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('세션 만료'),
+              content: const Text('세션이 만료되었습니다.\n다시 로그인 해주세요.'),
+              actions: [
+                TextButton(
+                  child: const Text('확인'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pushReplacementNamed('/');
+                  },
+                ),
+              ],
+            );
+          },
+        );
+        return;
+      }
+      final response = await _supabase
+          .from('kintai_start_end')
+          .select('is_start, created_at')
+          .eq('uid', userId)
+          .gte('created_at', startOfDay.toIso8601String())
+          .lte('created_at', endOfDay.toIso8601String())
+          .order('created_at', ascending: false)
+          .limit(1);
+
+      if (response.isNotEmpty) {
+        final last = response.first;
+        setState(() {
+          _isWorking = last['is_start'] == true;
+        });
+      } else {
+        // 오늘 기록이 없으면 출근 상태로 시작
+        setState(() {
+          _isWorking = false;
+        });
+      }
+    } catch (e) {
+      // 오류 발생 시 기본값(퇴근 상태)로
+      setState(() {
+        _isWorking = false;
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   // 로그아웃 확인 다이얼로그 함수
   Future<void> _showLogoutDialog() async {
@@ -57,9 +136,32 @@ class _MainPageState extends State<MainPage> {
   // 출근/퇴근 API 호출 함수
   Future<void> _sendWork(bool isStart) async {
     try {
+      final user = _supabase.auth.currentUser;
+      final uid = user?.id;
+      if (uid == null) {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('오류'),
+              content: const Text('유저 정보를 불러올 수 없습니다. 다시 로그인 해주세요.'),
+              actions: [
+                PrimaryButton(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            );
+          },
+        );
+        return;
+      }
+
       await _supabase.from('kintai_start_end').insert({
         'is_start': isStart,
-        'user_id': '1',
+        'uid': uid,
         'created_at': DateTime.now().toIso8601String(),
       }).select();
 
@@ -87,7 +189,7 @@ class _MainPageState extends State<MainPage> {
         },
       );
 
-      // 상태값 반전 (출근 → 퇴근, 퇴근 → 출근)
+      // 상태값 반영 (출근 → 퇴근, 퇴근 → 출근)
       setState(() {
         _isWorking = isStart;
       });
@@ -189,7 +291,9 @@ class _MainPageState extends State<MainPage> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Center(
-                child: _isWorking ? endButton() : startButton(),
+                child: _isLoading
+                    ? const CupertinoActivityIndicator()
+                    : (_isWorking ? endButton() : startButton()),
               ),
             ),
           );
