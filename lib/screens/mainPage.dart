@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:your_app/screens/work.dart'; // Work 위젯 import
+import 'package:smart_kintai/screens/work.dart';
+import 'package:smart_kintai/screens/myInfo.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -54,9 +55,12 @@ class _MainPageState extends State<MainPage> {
 
   // 바텀 네비게이션 바에서 보여줄 위젯들
   Widget _buildBody() {
-    // 0번(근무) 탭에 Work 위젯 사용
+    // 0번(근무) 탭에 Work 위젯, 1번(내 정보) 탭에 MyInfoPage 위젯 사용
     switch (_selectedIndex) {
       case 0:
+        return const Work();
+      case 1:
+        return const MyInfo();
       default:
         return const Work();
     }
