@@ -56,26 +56,13 @@ class _MyInfoState extends State<MyInfo> {
     }
   }
 
-  WorkType? _parseWorkType(String? workType) {
+  String _getWorkTypeKorean(String? workType) {
     switch (workType) {
       case 'fixed':
-        return WorkType.fixed;
-      case 'flex':
-        return WorkType.flex;
-      case 'full-flex':
-        return WorkType.fullFlex;
-      default:
-        return null;
-    }
-  }
-
-  String _getWorkTypeKorean(WorkType? workType) {
-    switch (workType) {
-      case WorkType.fixed:
         return '고정근무';
-      case WorkType.flex:
+      case 'flex':
         return '유연근무 (코어타임 O)';
-      case WorkType.fullFlex:
+      case 'full-flex':
         return '유연근무 (코어타임 X)';
       default:
         return '알 수 없음';
