@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'work.dart'; // Work 위젯 import
+import 'package:your_app/screens/work.dart'; // Work 위젯 import
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
