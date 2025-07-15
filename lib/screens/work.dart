@@ -193,14 +193,16 @@ class _WorkState extends State<Work> {
         _isWorking = isStart;
       });
     } catch (e) {
-      // 오류 처리
+      // Log the error internally
+      print('Error during ${isStart ? '근무 시작' : '근무 종료'}: $e');
+      
+      // Show a user-friendly error message
       showDialog(
         context: context,
         builder: (context) {
           return AlertDialog(
             title: const Text('오류'),
-            content:
-                Text('${isStart ? '근무 시작' : '근무 종료'} 처리 중 오류가 발생했습니다.\n$e'),
+            content: Text('${isStart ? '근무 시작' : '근무 종료'} 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'),
             actions: [
               PrimaryButton(
                 child: const Text('OK'),
