@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'mainPage.dart';
@@ -51,14 +51,14 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _showDialog(String title, String content) {
-    showDialog(
+    showShadDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
+        return ShadDialog.alert(
           title: Text(title),
-          content: Text(content),
+          description: Text(content),
           actions: [
-            PrimaryButton(
+            ShadButton(
               child: const Text('OK'),
               onPressed: () {
                 Navigator.pop(context);
@@ -146,12 +146,12 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CupertinoTextField(
+                  ShadInputFormField(
                     controller: _emailController,
-                    placeholder: '이메일',
+                    placeholder: const Text('이메일'),
                     keyboardType: TextInputType.emailAddress,
                     padding: const EdgeInsets.all(16),
-                    clearButtonMode: OverlayVisibilityMode.editing,
+                    // clearButtonMode: OverlayVisibilityMode.editing,
                     onChanged: (value) {
                       if (_saveId) {
                         _setSavedId(true);
@@ -159,12 +159,12 @@ class _LoginPageState extends State<LoginPage> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  CupertinoTextField(
+                  ShadInputFormField(
                     controller: _passwordController,
-                    placeholder: '비밀번호',
+                    placeholder: const Text('비밀번호'),
                     obscureText: true,
                     padding: const EdgeInsets.all(16),
-                    clearButtonMode: OverlayVisibilityMode.editing,
+                    // clearButtonMode: OverlayVisibilityMode.editing,
                   ),
                   const SizedBox(height: 12),
                   // 가운데 정렬된 ID 저장 Row, Row 전체가 setState 하도록 GestureDetector로 감쌈
@@ -180,7 +180,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CupertinoSwitch(
+                        ShadSwitch(
                           value: _saveId,
                           onChanged: (value) async {
                             setState(() {
