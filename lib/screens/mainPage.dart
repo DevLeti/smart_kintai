@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smart_kintai/screens/work.dart';
 import 'package:smart_kintai/screens/myInfo.dart';
@@ -16,20 +16,20 @@ class _MainPageState extends State<MainPage> {
 
   // 로그아웃 확인 다이얼로그 함수
   Future<void> _showLogoutDialog() async {
-    final result = await showDialog<bool>(
+    final result = await showShadDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
+        return ShadDialog.alert(
           title: const Text('로그아웃'),
-          content: const Text('정말 로그아웃 하시겠습니까?'),
+          description: const Text('정말 로그아웃 하시겠습니까?'),
           actions: [
-            TextButton(
+            ShadButton(
               child: const Text('취소'),
               onPressed: () {
                 Navigator.of(context).pop(false);
               },
             ),
-            PrimaryButton(
+            ShadButton.outline(
               child: const Text('로그아웃'),
               onPressed: () {
                 Navigator.of(context).pop(true);

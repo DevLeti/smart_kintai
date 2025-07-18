@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Work extends StatefulWidget {
@@ -47,14 +47,14 @@ class _WorkState extends State<Work> {
           _endTime = null;
         });
         // 세션 만료 다이얼로그 표시
-        showDialog(
+        showShadDialog(
           context: context,
           builder: (context) {
-            return AlertDialog(
+            return ShadDialog.alert(
               title: const Text('세션 만료'),
-              content: const Text('세션이 만료되었습니다.\n다시 로그인 해주세요.'),
+              description: const Text('세션이 만료되었습니다.\n다시 로그인 해주세요.'),
               actions: [
-                TextButton(
+                ShadButton(
                   child: const Text('확인'),
                   onPressed: () {
                     Navigator.of(context).pop();
@@ -123,14 +123,14 @@ class _WorkState extends State<Work> {
       final user = _supabase.auth.currentUser;
       final uid = user?.id;
       if (uid == null) {
-        showDialog(
+        showShadDialog(
           context: context,
           builder: (context) {
-            return AlertDialog(
+            return ShadDialog.alert(
               title: const Text('오류'),
-              content: const Text('유저 정보를 불러올 수 없습니다. 다시 로그인 해주세요.'),
+              description: const Text('유저 정보를 불러올 수 없습니다. 다시 로그인 해주세요.'),
               actions: [
-                PrimaryButton(
+                ShadButton(
                   child: const Text('OK'),
                   onPressed: () {
                     Navigator.pop(context);
@@ -152,18 +152,18 @@ class _WorkState extends State<Work> {
       }).select();
 
       // 성공 처리
-      showDialog(
+      showShadDialog(
         context: context,
         builder: (context) {
           final formattedTime =
               "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
-          return AlertDialog(
+          return ShadDialog.alert(
             title: Text(isStart ? '근무 시작' : '근무 종료'),
-            content: Text(
-              '${isStart ? '성공적으로 근무 시작 처리 되었습니다.' : '성공적으로 근무 종료 처리 되었습니다.'}\n\n현재 시간: $formattedTime',
+            description: Text(
+              '${isStart ? '성공적으로 근무 시작 처리 되었습니다.' : '성공적으로 근무 종료 처리 되었습니다.'}\n현재 시간: $formattedTime',
             ),
             actions: [
-              PrimaryButton(
+              ShadButton(
                 child: const Text('OK'),
                 onPressed: () {
                   Navigator.pop(context);
@@ -181,15 +181,15 @@ class _WorkState extends State<Work> {
       print('Error during ${isStart ? '근무 시작' : '근무 종료'}: $e');
 
       // Show a user-friendly error message
-      showDialog(
+      showShadDialog(
         context: context,
         builder: (context) {
-          return AlertDialog(
+          return ShadDialog.alert(
             title: const Text('오류'),
-            content: Text(
+            description: Text(
                 '${isStart ? '근무 시작' : '근무 종료'} 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'),
             actions: [
-              PrimaryButton(
+              ShadButton(
                 child: const Text('OK'),
                 onPressed: () {
                   Navigator.pop(context);
