@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:smart_kintai/screens/register.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'mainPage.dart';
@@ -14,8 +16,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final formKey = GlobalKey<ShadFormState>();
 
   bool _isLoginLoading = false;
   bool _isSignUpLoading = false;
@@ -32,17 +33,18 @@ class _LoginPageState extends State<LoginPage> {
     final savedId = prefs.getString('saved_email');
     final saveIdChecked = prefs.getBool('save_id_checked') ?? false;
     if (savedId != null && saveIdChecked) {
-      _emailController.text = savedId;
       setState(() {
+        formKey.currentState!.fields['email']?.didChange(savedId);
         _saveId = true;
       });
     }
   }
 
-  Future<void> _setSavedId(bool value) async {
+  Future<void> _setSavedId(bool value, [String? email]) async {
     final prefs = await SharedPreferences.getInstance();
     if (value) {
-      await prefs.setString('saved_email', _emailController.text.trim());
+      await prefs.setString(
+          'saved_email', email ?? (formKey.currentState?.value['email'] ?? ''));
       await prefs.setBool('save_id_checked', true);
     } else {
       await prefs.remove('saved_email');
@@ -70,19 +72,21 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Future<void> _login() async {
+  Future<void> _login(Map<dynamic, dynamic> values) async {
     setState(() {
       _isLoginLoading = true;
     });
     try {
+      final email = values['email']?.toString().trim() ?? '';
+      final password = values['password'] ?? '';
       if (_saveId) {
-        await _setSavedId(true);
+        await _setSavedId(true, email);
       } else {
         await _setSavedId(false);
       }
       final response = await _supabase.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+        email: email,
+        password: password,
       );
       if (response.user != null) {
         if (mounted) {
@@ -94,7 +98,15 @@ class _LoginPageState extends State<LoginPage> {
         _showDialog('로그인 실패', '이메일 또는 비밀번호를 확인해주세요.');
       }
     } catch (e) {
-      _showDialog('오류', '로그인 중 오류가 발생했습니다.\n$e');
+      if (e is AuthException && e.code == 'invalid_credentials') {
+        _showDialog('로그인 실패', '이메일 또는 비밀번호가 올바르지 않습니다.');
+        return;
+      } else {
+        _showDialog('오류', '로그인 중 오류가 발생했습니다.\n');
+        if (kDebugMode) {
+          print(e);
+        }
+      }
     } finally {
       setState(() {
         _isLoginLoading = false;
@@ -102,127 +114,140 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _signUp() async {
-    setState(() {
-      _isSignUpLoading = true;
-    });
-    try {
-      final response = await _supabase.auth.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-      if (response.user != null) {
-        if (mounted) {
-          _showDialog('회원가입 성공', '이메일 인증 후 로그인해주세요.');
-        }
-      } else {
-        _showDialog('회원가입 실패', '이미 가입된 이메일이거나, 입력 정보를 확인해주세요.');
-      }
-    } catch (e) {
-      _showDialog('오류', '회원가입 중 오류가 발생했습니다.\n$e');
-    } finally {
-      setState(() {
-        _isSignUpLoading = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // TODO: 프레임드랍 해결
       behavior: HitTestBehavior.translucent,
       onTap: () {
         FocusScope.of(context).unfocus();
       },
       child: CupertinoPageScaffold(
         navigationBar: const CupertinoNavigationBar(
-          middle: Text('로그인 / 회원가입'),
+          middle: Text('로그인'),
         ),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ShadInputFormField(
-                    controller: _emailController,
-                    placeholder: const Text('이메일'),
-                    keyboardType: TextInputType.emailAddress,
-                    padding: const EdgeInsets.all(16),
-                    // clearButtonMode: OverlayVisibilityMode.editing,
-                    onChanged: (value) {
-                      if (_saveId) {
-                        _setSavedId(true);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  ShadInputFormField(
-                    controller: _passwordController,
-                    placeholder: const Text('비밀번호'),
-                    obscureText: true,
-                    padding: const EdgeInsets.all(16),
-                    // clearButtonMode: OverlayVisibilityMode.editing,
-                  ),
-                  const SizedBox(height: 12),
-                  // 가운데 정렬된 ID 저장 Row, Row 전체가 setState 하도록 GestureDetector로 감쌈
-                  GestureDetector(
-                    onTap: () async {
-                      // 진동 피드백 추가
-                      HapticFeedback.lightImpact();
-                      setState(() {
-                        _saveId = !_saveId;
-                      });
-                      await _setSavedId(_saveId);
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ShadSwitch(
-                          value: _saveId,
-                          onChanged: (value) async {
-                            setState(() {
-                              _saveId = value;
-                            });
-                            await _setSavedId(value);
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        const Text('ID 저장'),
-                      ],
+              child: ShadForm(
+                key: formKey,
+                initialValue: const {},
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ShadInputFormField(
+                      id: 'email',
+                      label: const Text('이메일'),
+                      placeholder: const Text('이메일을 입력하세요'),
+                      keyboardType: TextInputType.emailAddress,
+                      padding: const EdgeInsets.all(16),
+                      validator: (v) {
+                        if (v.trim().isEmpty) {
+                          return '이메일을 입력해주세요.';
+                        }
+                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
+                            .hasMatch(v.trim())) {
+                          return '올바른 이메일 형식이 아닙니다.';
+                        }
+                        return null;
+                      },
+                      onChanged: (value) {
+                        if (_saveId) {
+                          _setSavedId(true, value);
+                        }
+                      },
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20.0),
-                    child: Container(
+                    const SizedBox(height: 16),
+                    ShadInputFormField(
+                      id: 'password',
+                      label: const Text('비밀번호'),
+                      placeholder: const Text('비밀번호를 입력하세요'),
+                      obscureText: true,
+                      padding: const EdgeInsets.all(16),
+                      validator: (v) {
+                        if (v.isEmpty) {
+                          return '비밀번호를 입력해주세요.';
+                        }
+                        if (v.length < 6) {
+                          return '비밀번호는 6자 이상이어야 합니다.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () async {
+                        HapticFeedback.lightImpact();
+                        setState(() {
+                          _saveId = !_saveId;
+                        });
+                        final email =
+                            formKey.currentState?.value['email'] ?? '';
+                        await _setSavedId(_saveId, email);
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ShadSwitch(
+                            value: _saveId,
+                            onChanged: (value) async {
+                              setState(() {
+                                _saveId = value;
+                              });
+                              final email =
+                                  formKey.currentState?.value['email'] ?? '';
+                              await _setSavedId(value, email);
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('ID 저장'),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20.0),
+                      child: Container(
+                        width: double.infinity,
+                        height: 1,
+                        color: CupertinoColors.systemGrey4,
+                      ),
+                    ),
+                    SizedBox(
                       width: double.infinity,
-                      height: 1,
-                      color: CupertinoColors.systemGrey4,
+                      child: ShadButton(
+                        onPressed: _isLoginLoading
+                            ? null
+                            : () {
+                                if (formKey.currentState!.saveAndValidate()) {
+                                  _login(formKey.currentState!.value);
+                                }
+                              },
+                        child: _isLoginLoading
+                            ? const CupertinoActivityIndicator()
+                            : const Text('로그인'),
+                      ),
                     ),
-                  ),
-                  SizedBox(
-                    width: double.infinity,
-                    child: CupertinoButton.filled(
-                      onPressed: _isLoginLoading ? null : _login,
-                      child: _isLoginLoading
-                          ? const CupertinoActivityIndicator()
-                          : const Text('로그인'),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ShadButton.secondary(
+                        backgroundColor: CupertinoColors.activeGreen,
+                        onPressed: _isSignUpLoading
+                            ? null
+                            : () {
+                                Navigator.of(context).push(
+                                  CupertinoPageRoute(
+                                    builder: (_) => const RegisterPage(),
+                                  ),
+                                );
+                              },
+                        child: _isSignUpLoading
+                            ? const CupertinoActivityIndicator()
+                            : const Text('회원가입'),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: CupertinoButton(
-                      color: CupertinoColors.activeGreen,
-                      onPressed: _isSignUpLoading ? null : _signUp,
-                      child: _isSignUpLoading
-                          ? const CupertinoActivityIndicator()
-                          : const Text('회원가입'),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
