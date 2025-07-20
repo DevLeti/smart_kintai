@@ -114,33 +114,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _signUp(Map<dynamic, dynamic> values) async {
-    setState(() {
-      _isSignUpLoading = true;
-    });
-    try {
-      final email = values['email']?.toString().trim() ?? '';
-      final password = values['password'] ?? '';
-      final response = await _supabase.auth.signUp(
-        email: email,
-        password: password,
-      );
-      if (response.user != null) {
-        if (mounted) {
-          _showDialog('회원가입 성공', '이메일 인증 후 로그인해주세요.');
-        }
-      } else {
-        _showDialog('회원가입 실패', '이미 가입된 이메일이거나, 입력 정보를 확인해주세요.');
-      }
-    } catch (e) {
-      _showDialog('오류', '회원가입 중 오류가 발생했습니다.\n$e');
-    } finally {
-      setState(() {
-        _isSignUpLoading = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
