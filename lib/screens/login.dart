@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:smart_kintai/screens/register.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'mainPage.dart';
@@ -158,122 +159,121 @@ class _LoginPageState extends State<LoginPage> {
               child: ShadForm(
                 key: formKey,
                 initialValue: const {},
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ShadInputFormField(
-                        id: 'email',
-                        label: const Text('이메일'),
-                        placeholder: const Text('이메일을 입력하세요'),
-                        keyboardType: TextInputType.emailAddress,
-                        padding: const EdgeInsets.all(16),
-                        validator: (v) {
-                          if (v.trim().isEmpty) {
-                            return '이메일을 입력해주세요.';
-                          }
-                          if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
-                              .hasMatch(v.trim())) {
-                            return '올바른 이메일 형식이 아닙니다.';
-                          }
-                          return null;
-                        },
-                        onChanged: (value) {
-                          if (_saveId) {
-                            _setSavedId(true, value);
-                          }
-                        },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ShadInputFormField(
+                      id: 'email',
+                      label: const Text('이메일'),
+                      placeholder: const Text('이메일을 입력하세요'),
+                      keyboardType: TextInputType.emailAddress,
+                      padding: const EdgeInsets.all(16),
+                      validator: (v) {
+                        if (v.trim().isEmpty) {
+                          return '이메일을 입력해주세요.';
+                        }
+                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
+                            .hasMatch(v.trim())) {
+                          return '올바른 이메일 형식이 아닙니다.';
+                        }
+                        return null;
+                      },
+                      onChanged: (value) {
+                        if (_saveId) {
+                          _setSavedId(true, value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    ShadInputFormField(
+                      id: 'password',
+                      label: const Text('비밀번호'),
+                      placeholder: const Text('비밀번호를 입력하세요'),
+                      obscureText: true,
+                      padding: const EdgeInsets.all(16),
+                      validator: (v) {
+                        if (v.isEmpty) {
+                          return '비밀번호를 입력해주세요.';
+                        }
+                        if (v.length < 6) {
+                          return '비밀번호는 6자 이상이어야 합니다.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () async {
+                        HapticFeedback.lightImpact();
+                        setState(() {
+                          _saveId = !_saveId;
+                        });
+                        final email =
+                            formKey.currentState?.value['email'] ?? '';
+                        await _setSavedId(_saveId, email);
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ShadSwitch(
+                            value: _saveId,
+                            onChanged: (value) async {
+                              setState(() {
+                                _saveId = value;
+                              });
+                              final email =
+                                  formKey.currentState?.value['email'] ?? '';
+                              await _setSavedId(value, email);
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('ID 저장'),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      ShadInputFormField(
-                        id: 'password',
-                        label: const Text('비밀번호'),
-                        placeholder: const Text('비밀번호를 입력하세요'),
-                        obscureText: true,
-                        padding: const EdgeInsets.all(16),
-                        validator: (v) {
-                          if (v.isEmpty) {
-                            return '비밀번호를 입력해주세요.';
-                          }
-                          if (v.length < 6) {
-                            return '비밀번호는 6자 이상이어야 합니다.';
-                          }
-                          return null;
-                        },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20.0),
+                      child: Container(
+                        width: double.infinity,
+                        height: 1,
+                        color: CupertinoColors.systemGrey4,
                       ),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () async {
-                          HapticFeedback.lightImpact();
-                          setState(() {
-                            _saveId = !_saveId;
-                          });
-                          final email =
-                              formKey.currentState?.value['email'] ?? '';
-                          await _setSavedId(_saveId, email);
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ShadSwitch(
-                              value: _saveId,
-                              onChanged: (value) async {
-                                setState(() {
-                                  _saveId = value;
-                                });
-                                final email =
-                                    formKey.currentState?.value['email'] ?? '';
-                                await _setSavedId(value, email);
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ShadButton(
+                        onPressed: _isLoginLoading
+                            ? null
+                            : () {
+                                if (formKey.currentState!.saveAndValidate()) {
+                                  _login(formKey.currentState!.value);
+                                }
                               },
-                            ),
-                            const SizedBox(width: 8),
-                            const Text('ID 저장'),
-                          ],
-                        ),
+                        child: _isLoginLoading
+                            ? const CupertinoActivityIndicator()
+                            : const Text('로그인'),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20.0),
-                        child: Container(
-                          width: double.infinity,
-                          height: 1,
-                          color: CupertinoColors.systemGrey4,
-                        ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ShadButton.secondary(
+                        backgroundColor: CupertinoColors.activeGreen,
+                        onPressed: _isSignUpLoading
+                            ? null
+                            : () {
+                                Navigator.of(context).push(
+                                  CupertinoPageRoute(
+                                    builder: (_) => const RegisterPage(),
+                                  ),
+                                );
+                              },
+                        child: _isSignUpLoading
+                            ? const CupertinoActivityIndicator()
+                            : const Text('회원가입'),
                       ),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ShadButton(
-                          onPressed: _isLoginLoading
-                              ? null
-                              : () {
-                                  if (formKey.currentState!.saveAndValidate()) {
-                                    _login(formKey.currentState!.value);
-                                  }
-                                },
-                          child: _isLoginLoading
-                              ? const CupertinoActivityIndicator()
-                              : const Text('로그인'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ShadButton(
-                          backgroundColor: CupertinoColors.activeGreen,
-                          onPressed: _isSignUpLoading
-                              ? null
-                              : () {
-                                  if (formKey.currentState!.saveAndValidate()) {
-                                    _signUp(formKey.currentState!.value);
-                                  }
-                                },
-                          child: _isSignUpLoading
-                              ? const CupertinoActivityIndicator()
-                              : const Text('회원가입'),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
