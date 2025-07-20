@@ -97,7 +97,6 @@ class _LoginPageState extends State<LoginPage> {
         _showDialog('로그인 실패', '이메일 또는 비밀번호를 확인해주세요.');
       }
     } catch (e) {
-      // e.code가 invalid_credentials인지 확인하는 코드
       if (e is AuthException && e.code == 'invalid_credentials') {
         _showDialog('로그인 실패', '이메일 또는 비밀번호가 올바르지 않습니다.');
         return;
@@ -150,7 +149,7 @@ class _LoginPageState extends State<LoginPage> {
       },
       child: CupertinoPageScaffold(
         navigationBar: const CupertinoNavigationBar(
-          middle: Text('로그인 / 회원가입'),
+          middle: Text('로그인'),
         ),
         child: SafeArea(
           child: Center(
