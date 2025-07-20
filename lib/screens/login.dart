@@ -171,7 +171,7 @@ class _LoginPageState extends State<LoginPage> {
                         keyboardType: TextInputType.emailAddress,
                         padding: const EdgeInsets.all(16),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
+                          if (v.trim().isEmpty) {
                             return '이메일을 입력해주세요.';
                           }
                           if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
