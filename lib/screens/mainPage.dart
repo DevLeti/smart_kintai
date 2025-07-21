@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smart_kintai/screens/work.dart';
@@ -81,28 +82,28 @@ class _MainPageState extends State<MainPage> {
           ),
         ),
       ),
-      child: Stack(
-        children: [
-          // 메인 컨텐츠
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: _buildBody(),
-                ),
-              );
-            },
-          ),
-          // 바텀 네비게이션 바
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: CupertinoTabBar(
+      child: SafeArea(
+        child: Column(
+          children: [
+            // 메인 컨텐츠
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SizedBox(
+                    width: double.infinity,
+                    height: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: _buildBody(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            // 바텀 네비게이션 바
+            CupertinoTabBar(
               currentIndex: _selectedIndex,
+              backgroundColor: Colors.white,
               onTap: (int index) {
                 setState(() {
                   _selectedIndex = index;
@@ -120,8 +121,8 @@ class _MainPageState extends State<MainPage> {
                 // 필요시 추가
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
