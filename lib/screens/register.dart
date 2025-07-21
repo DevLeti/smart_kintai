@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
-import 'package:smart_kintai/screens/mainPage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RegisterPage extends StatefulWidget {

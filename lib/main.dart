@@ -3,7 +3,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'screens/mainPage.dart';
+import 'screens/main_page.dart';
 import 'screens/login.dart';
 
 void main() async {

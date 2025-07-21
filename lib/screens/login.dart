@@ -5,7 +5,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:smart_kintai/screens/register.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'mainPage.dart';
+import 'main_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
