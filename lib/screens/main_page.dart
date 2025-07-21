@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smart_kintai/screens/work.dart';
-import 'package:smart_kintai/screens/myInfo.dart';
+import 'package:smart_kintai/screens/my_info.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
