@@ -4,6 +4,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smart_kintai/screens/work.dart';
 import 'package:smart_kintai/screens/my_info.dart';
+import 'package:smart_kintai/screens/work_check.dart'; // WorkCheck import 추가
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -14,6 +15,7 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
+  String _selectedTitle = '근무';
 
   // 로그아웃 확인 다이얼로그 함수
   Future<void> _showLogoutDialog() async {
@@ -56,22 +58,44 @@ class _MainPageState extends State<MainPage> {
 
   // 바텀 네비게이션 바에서 보여줄 위젯들
   Widget _buildBody() {
-    // 0번(근무) 탭에 Work 위젯, 1번(내 정보) 탭에 MyInfoPage 위젯 사용
+    // 각 탭에 맞는 타이틀과 위젯을 미리 결정
+    String newTitle;
+    Widget body;
     switch (_selectedIndex) {
       case 0:
-        return const Work();
+        newTitle = '근무';
+        body = const Work();
+        break;
       case 1:
-        return const MyInfo();
+        newTitle = '근무확인';
+        body = WorkCheck();
+        break;
+      case 2:
+        newTitle = '내 정보';
+        body = const MyInfo();
+        break;
       default:
-        return const Work();
+        newTitle = '근무';
+        body = const Work();
     }
+
+    // 타이틀이 바뀌었을 때만 setState 호출
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_selectedTitle != newTitle) {
+        setState(() {
+          _selectedTitle = newTitle;
+        });
+      }
+    });
+
+    return body;
   }
 
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: const Text('근무관리'),
+        middle: Text(_selectedTitle),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _showLogoutDialog,
@@ -115,10 +139,13 @@ class _MainPageState extends State<MainPage> {
                   label: '근무',
                 ),
                 BottomNavigationBarItem(
+                  icon: Icon(CupertinoIcons.calendar),
+                  label: '근무확인',
+                ),
+                BottomNavigationBarItem(
                   icon: Icon(CupertinoIcons.person),
                   label: '내 정보',
                 ),
-                // 필요시 추가
               ],
             ),
           ],
