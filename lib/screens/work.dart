@@ -1,20 +1,24 @@
 import 'package:flutter/cupertino.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+class Work extends StatefulWidget {
+  const Work({super.key});
 
   @override
-  State<MainPage> createState() => _MainPageState();
+  State<Work> createState() => _WorkState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _WorkState extends State<Work> {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   // 출근 상태를 저장하는 변수 (true: 출근, false: 퇴근)
   bool _isWorking = false;
   bool _isLoading = true;
+
+  // 출근/퇴근 시간 저장 변수
+  DateTime? _startTime;
+  DateTime? _endTime;
 
   @override
   void initState() {
@@ -22,14 +26,13 @@ class _MainPageState extends State<MainPage> {
     _fetchTodayWorkStatus();
   }
 
-  // 오늘의 마지막 출근/퇴근 상태를 supabase에서 조회
+  // 오늘의 출근/퇴근 상태 및 시간들을 supabase에서 조회
   Future<void> _fetchTodayWorkStatus() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // 실제로는 user_id를 동적으로 받아야 함. 예시로 '1' 사용
       final now = DateTime.now();
       final startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
       final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
@@ -40,16 +43,18 @@ class _MainPageState extends State<MainPage> {
         setState(() {
           _isWorking = false;
           _isLoading = false;
+          _startTime = null;
+          _endTime = null;
         });
         // 세션 만료 다이얼로그 표시
-        showDialog(
+        showShadDialog(
           context: context,
           builder: (context) {
-            return AlertDialog(
+            return ShadDialog.alert(
               title: const Text('세션 만료'),
-              content: const Text('세션이 만료되었습니다.\n다시 로그인 해주세요.'),
+              description: const Text('세션이 만료되었습니다.\n다시 로그인 해주세요.'),
               actions: [
-                TextButton(
+                ShadButton(
                   child: const Text('확인'),
                   onPressed: () {
                     Navigator.of(context).pop();
@@ -62,74 +67,53 @@ class _MainPageState extends State<MainPage> {
         );
         return;
       }
+
+      // 오늘의 모든 출근/퇴근 기록을 시간순으로 조회
       final response = await _supabase
           .from('kintai_start_end')
           .select('is_start, created_at')
           .eq('uid', userId)
           .gte('created_at', startOfDay.toIso8601String())
           .lte('created_at', endOfDay.toIso8601String())
-          .order('created_at', ascending: false)
-          .limit(1);
+          .order('created_at', ascending: true);
 
-      if (response.isNotEmpty) {
-        final last = response.first;
-        setState(() {
-          _isWorking = last['is_start'] == true;
-        });
-      } else {
-        // 오늘 기록이 없으면 출근 상태로 시작
-        setState(() {
-          _isWorking = false;
-        });
+      DateTime? firstStartTime;
+      DateTime? lastEndTime;
+      bool isWorking = false;
+
+      for (final record in response) {
+        if (record['is_start'] == true && firstStartTime == null) {
+          // 첫 출근 기록만 저장
+          firstStartTime = DateTime.tryParse(record['created_at']);
+        } else if (record['is_start'] == false) {
+          // 마지막 퇴근 기록으로 갱신
+          lastEndTime = DateTime.tryParse(record['created_at']);
+        }
       }
+
+      // 현재 출근 상태는 마지막 기록의 is_start 값에 따라 판단
+      if (response.isNotEmpty) {
+        final lastRecord = response.last;
+        isWorking = lastRecord['is_start'] == true;
+      } else {
+        isWorking = false;
+      }
+
+      setState(() {
+        _isWorking = isWorking;
+        _startTime = firstStartTime;
+        _endTime = lastEndTime;
+      });
     } catch (e) {
-      // 오류 발생 시 기본값(퇴근 상태)로
       setState(() {
         _isWorking = false;
+        _startTime = null;
+        _endTime = null;
       });
     } finally {
       setState(() {
         _isLoading = false;
       });
-    }
-  }
-
-  // 로그아웃 확인 다이얼로그 함수
-  Future<void> _showLogoutDialog() async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('로그아웃'),
-          content: const Text('정말 로그아웃 하시겠습니까?'),
-          actions: [
-            TextButton(
-              child: const Text('취소'),
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-            ),
-            PrimaryButton(
-              child: const Text('로그아웃'),
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-            ),
-          ],
-        );
-      },
-    );
-
-    if (result == true) {
-      await _logout();
-    }
-  }
-
-  // 로그아웃 처리 함수
-  Future<void> _logout() async {
-    await _supabase.auth.signOut();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/');
     }
   }
 
@@ -139,14 +123,14 @@ class _MainPageState extends State<MainPage> {
       final user = _supabase.auth.currentUser;
       final uid = user?.id;
       if (uid == null) {
-        showDialog(
+        showShadDialog(
           context: context,
           builder: (context) {
-            return AlertDialog(
+            return ShadDialog.alert(
               title: const Text('오류'),
-              content: const Text('유저 정보를 불러올 수 없습니다. 다시 로그인 해주세요.'),
+              description: const Text('유저 정보를 불러올 수 없습니다. 다시 로그인 해주세요.'),
               actions: [
-                PrimaryButton(
+                ShadButton(
                   child: const Text('OK'),
                   onPressed: () {
                     Navigator.pop(context);
@@ -159,26 +143,27 @@ class _MainPageState extends State<MainPage> {
         return;
       }
 
+      final now = DateTime.now();
+
       await _supabase.from('kintai_start_end').insert({
         'is_start': isStart,
         'uid': uid,
-        'created_at': DateTime.now().toIso8601String(),
+        'created_at': now.toIso8601String(),
       }).select();
 
       // 성공 처리
-      showDialog(
+      showShadDialog(
         context: context,
         builder: (context) {
-          final now = DateTime.now();
           final formattedTime =
               "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
-          return AlertDialog(
+          return ShadDialog.alert(
             title: Text(isStart ? '근무 시작' : '근무 종료'),
-            content: Text(
-              '${isStart ? '성공적으로 근무 시작 처리 되었습니다.' : '성공적으로 근무 종료 처리 되었습니다.'}\n\n현재 시간: $formattedTime',
+            description: Text(
+              '${isStart ? '성공적으로 근무 시작 처리 되었습니다.' : '성공적으로 근무 종료 처리 되었습니다.'}\n현재 시간: $formattedTime',
             ),
             actions: [
-              PrimaryButton(
+              ShadButton(
                 child: const Text('OK'),
                 onPressed: () {
                   Navigator.pop(context);
@@ -189,21 +174,22 @@ class _MainPageState extends State<MainPage> {
         },
       );
 
-      // 상태값 반영 (출근 → 퇴근, 퇴근 → 출근)
-      setState(() {
-        _isWorking = isStart;
-      });
+      // 상태값 반영 및 출근/퇴근 시간 갱신을 위해 다시 조회
+      await _fetchTodayWorkStatus();
     } catch (e) {
-      // 오류 처리
-      showDialog(
+      // Log the error internally
+      print('Error during ${isStart ? '근무 시작' : '근무 종료'}: $e');
+
+      // Show a user-friendly error message
+      showShadDialog(
         context: context,
         builder: (context) {
-          return AlertDialog(
+          return ShadDialog.alert(
             title: const Text('오류'),
-            content:
-                Text('${isStart ? '근무 시작' : '근무 종료'} 처리 중 오류가 발생했습니다.\n$e'),
+            description: Text(
+                '${isStart ? '근무 시작' : '근무 종료'} 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'),
             actions: [
-              PrimaryButton(
+              ShadButton(
                 child: const Text('OK'),
                 onPressed: () {
                   Navigator.pop(context);
@@ -214,6 +200,32 @@ class _MainPageState extends State<MainPage> {
         },
       );
     }
+  }
+
+  // 시간 포맷 함수
+  String _formatTime(DateTime? dt) {
+    if (dt == null) return '미입력';
+    return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+  }
+
+  // 출근/퇴근 정보 위젯
+  Widget workInfoWidget() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        children: [
+          Text(
+            '출근: ${_formatTime(_startTime)}\n퇴근: ${_formatTime(_endTime)}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 20,
+              color: CupertinoColors.systemGrey,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // 출근 버튼 (정사각형)
@@ -268,21 +280,24 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
+  // 메인 컨텐츠만 보여줌
+  Widget _buildBody() {
+    return Center(
+      child: _isLoading
+          ? const CupertinoActivityIndicator()
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                workInfoWidget(),
+                _isWorking ? endButton() : startButton(),
+              ],
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: const Text('근무관리'),
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: _showLogoutDialog,
-          child: const Icon(
-            CupertinoIcons.square_arrow_right,
-            color: CupertinoColors.systemGrey, // 연한 회색으로 변경
-            size: 28,
-          ),
-        ),
-      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SizedBox(
@@ -290,11 +305,7 @@ class _MainPageState extends State<MainPage> {
             height: double.infinity,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Center(
-                child: _isLoading
-                    ? const CupertinoActivityIndicator()
-                    : (_isWorking ? endButton() : startButton()),
-              ),
+              child: _buildBody(),
             ),
           );
         },

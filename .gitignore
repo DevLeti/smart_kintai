@@ -278,3 +278,6 @@ fabric.properties
 !/gradle/wrapper/gradle-wrapper.jar
 
 # End of https://www.toptal.com/developers/gitignore/api/flutter,androidstudio,dart,dotenv
+
+### supabase
+supabase/.*

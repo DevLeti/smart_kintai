@@ -1,7 +1,9 @@
-import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:flutter/material.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'screens/mainPage.dart';
+import 'screens/main_page.dart';
 import 'screens/login.dart';
 
 void main() async {
@@ -19,13 +21,24 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShadcnApp(
-      title: '근무관리 앱',
-      home: const AuthRedirectPage(),
-      theme: ThemeData(
-        colorScheme: ColorSchemes.lightSlate(),
-        radius: 0.5,
+    return ShadApp.custom(
+      themeMode: ThemeMode.light,
+      darkTheme: ShadThemeData(
+        brightness: Brightness.light,
+        colorScheme: const ShadSlateColorScheme.light(),
       ),
+      appBuilder: (context) {
+        return CupertinoApp(
+          theme: CupertinoTheme.of(context),
+          localizationsDelegates: const [
+            DefaultMaterialLocalizations.delegate,
+            DefaultCupertinoLocalizations.delegate,
+            DefaultWidgetsLocalizations.delegate,
+          ],
+          title: '근무관리 앱',
+          home: const AuthRedirectPage(),
+        );
+      },
     );
   }
 }
